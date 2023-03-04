@@ -1,24 +1,7 @@
 import which from "which";
 import child_process from "child_process";
-import { Engine } from "../engines";
-import { v8 } from "../engines/v8";
-import { chrome } from "../engines/chrome";
-
-// TODO: move somewhere else
-interface DebugContext {
-  engine: Engine;
-  debuggee: child_process.ChildProcess;
-}
-
-async function engineFromExe(exePath: string): Promise<Engine> {
-  if (/chrome(\.exe)?/.test(exePath)) {
-    return chrome;
-  } else if (/node(\.exe)?/.test(exePath)) {
-    return v8;
-  } else {
-    throw Error(`not a supported JavaScript engine, '${exePath}'`);
-  }
-}
+import { engineFromExe } from "../engines";
+import { DebugContext } from "./debug-context";
 
 async function launch(cmd: string): Promise<DebugContext> {
   const [exeRef, ...args] = cmd.split(/\s+/);
@@ -34,12 +17,13 @@ async function launch(cmd: string): Promise<DebugContext> {
         ...process.env,
         // FIXME: merge with existing node options in env?
         NODE_OPTIONS: `--require="${require.resolve("./bootloader.ts")}"`,
+        JSDBG_PORT: 9229, // TODO: randomly generate one
       }
     }
   );
 
   return {
-    debuggee: spawned
-    engine: 
-  }
+    debuggee: spawned,
+    engine: engineFromExe(exe),
+  };
 }

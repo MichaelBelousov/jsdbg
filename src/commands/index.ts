@@ -1,52 +1,95 @@
 
 import assert from "assert";
-import { CommandDesc } from "./base";
+import { CommandDesc, implSubcommands } from "./base";
 import { RunContext } from "../core/run-context";
 
 const commands: Record<string, CommandDesc> = {
   b: {
-    aliases: 'break',
-    parseAndRun(argSrc: string) {
-
+    aliases: ['break'],
+    async parseAndRun(argSrc: string, ctx) {
+      // TODO; tokenize and stop on `if`
+      const parsed = /\s*(?<loc>\S*)\s*(if\s*(?<cond>.*$)?/.exec(argSrc);
+      await ctx.debug.engine.setBreakpoint({
+        location: {
+          sourceUnit: "",
+          line: 1,
+          col: 1,
+        },
+        condition: parsed?.groups?.cond,
+      });
     }
   },
 
   d: {
-    aliases: ['delete', 'clear']
+    aliases: ['delete', 'clear'],
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
   },
 
   help: {
-
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
   },
 
+  /*
   ...implSubcommands("info", {
     process: {
 
     }
   }),
+  */
 
   apropros: {
-
+    async parseAndRun(_argSrc: string, _ctx) {}
   },
 
   n: {
-    aliases: ['next']
+    aliases: ['next'],
+    async parseAndRun(_argSrc: string, ctx) {
+      await ctx.debug.engine.stepOver();
+    }
   },
 
   s: {
-    aliases: ['step']
+    aliases: ['step'],
+    async parseAndRun(_argSrc: string, ctx) {
+      await ctx.debug.engine.stepInto();
+    }
   },
 
   c: {
-    aliases: ['continue']
+    aliases: ['continue'],
+    async parseAndRun(_argSrc: string, ctx) {
+      await ctx.debug.engine.resume();
+    }
   },
 
   fin: {
-    aliases: ['finish']
+    aliases: ['finish'],
+    async parseAndRun(_argSrc: string, _ctx) {
+      await _ctx.debug.engine.stepOut();
+    }
+  },
+
+  up: {
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
+  },
+
+  down: {
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
   },
 
   p: {
-    aliases: ['print']
+    aliases: ['print'],
+    async parseAndRun(argSrc: string, ctx) {
+      await ctx.debug.engine.eval(argSrc);
+    }
   },
 
   q: {

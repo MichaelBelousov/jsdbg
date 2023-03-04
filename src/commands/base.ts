@@ -1,9 +1,11 @@
+import { DebugContext } from "../core/debug-context";
+import { RunContext } from "../core/run-context";
 
 export interface CommandDesc {
-  //name: string;
-  opts: {}, // yargs?
-  description: string;
-  parse(src: string): Promise<Command.Result>;
+  opts?: {}, // yargs/minimist?
+  // FIXME: make required
+  description?: string;
+  parseAndRun(src: string, ctx: { debug: DebugContext, run: RunContext }): Promise<Command.Result | void>;
   aliases?: string[];
 }
 
@@ -14,10 +16,10 @@ export namespace Command {
 }
 
 export function implSubCommands(supCmd: string, subCmds: Record<string, CommandDesc>): Record<string, CommandDesc> {
-  // FIXME: unimplemented
+  throw Error("Unimplemented");
   return {
     [supCmd]: Object.fromEntries(
-      Object.entries(subCmds).map(([subCmdName, subCmd]) => [subCmd.name, ])
+      Object.entries(subCmds).map(([subCmdName, subCmd]) => [subCmdName, ])
     )
   }
 }
