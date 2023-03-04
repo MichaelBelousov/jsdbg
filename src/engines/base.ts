@@ -46,6 +46,9 @@ export interface Engine {
   setBreakOnCaughtExceptions(val: boolean): Promise<void>;
   removeBreakpoint(b: Breakpoint): Promise<void | Error>;
 
+  /** will need to change this API when adapting other non-node.js debuggers */
+  get bootloaderPath(): string;
+
   /*
   heapProfile: {
     start(): Promise<void>;

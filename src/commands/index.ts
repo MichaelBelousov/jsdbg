@@ -3,13 +3,14 @@ import assert from "assert";
 import { CommandDesc, implSubCommands } from "./base";
 import { RunContext } from "../core/run-context";
 import { DebugContext } from "../core/debug-context";
+import { nodejs } from "../engines";
 
 const commands: Record<string, CommandDesc> = {
   b: {
     aliases: ['break'],
     async parseAndRun(argSrc: string, ctx) {
       // TODO; tokenize and stop on `if`
-      const parsed = /\s*(?<loc>\S*)\s*(if\s*(?<cond>.*$)?/.exec(argSrc);
+      const parsed = /\s*(?<loc>\S*)\s*(if\s*(?<cond>.*$))?/.exec(argSrc);
       await ctx.debug.engine.setBreakpoint({
         location: {
           sourceUnit: "",
@@ -29,6 +30,13 @@ const commands: Record<string, CommandDesc> = {
   },
 
   help: {
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
+  },
+
+  u: {
+    aliases: ['until'],
     async parseAndRun(_argSrc: string, _ctx) {
       throw Error("unimplemented");
     }
@@ -90,15 +98,18 @@ const commands: Record<string, CommandDesc> = {
     aliases: ['print'],
     async parseAndRun(argSrc: string, ctx) {
       const val = await ctx.debug.engine.eval(argSrc);
-      ctx.run.outputLine(`$x = ${val}`)
+      console.log("$x = ", val)
     }
   },
 
   q: {
     aliases: ['quit'],
-    async parseAndRun(argSrc: string, ctx) {
-      const val = await ctx.debug.engine.eval(argSrc);
-      ctx.run.outputLine(`$x = ${val}`)
+    async parseAndRun(_argSrc, ctx) {
+      // const quitError = Error("user quitting");
+      // (quitError as any).type = "user-quit";
+      // throw quitError;
+      ctx.run.outputLine("");
+      process.exit();
     }
   },
 
@@ -112,6 +123,17 @@ const commands: Record<string, CommandDesc> = {
   source: {
     async parseAndRun(_argSrc: string, _ctx) {
       throw Error("unimplemented");
+    }
+  },
+
+  // raw inspect
+  '_ri': {
+    async parseAndRun(_argSrc, ctx) {
+      const [message, args] = _argSrc.split("$").map(s => JSON.parse(s));
+      const result = await (ctx.debug.engine as nodejs)["_post"](message, args) as any;
+      ctx.run.outputLine("result: ");
+      console.log('error: ', result.error);
+      ctx.run.outputLine("result: " + JSON.stringify(result.result));
     }
   }
 };
