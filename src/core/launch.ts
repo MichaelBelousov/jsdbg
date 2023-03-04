@@ -17,13 +17,13 @@ async function launch(cmd: string): Promise<DebugContext> {
         ...process.env,
         // FIXME: merge with existing node options in env?
         NODE_OPTIONS: `--require="${require.resolve("./bootloader.ts")}"`,
-        JSDBG_PORT: 9229, // TODO: randomly generate one
+        JSDBG_PORT: `${9229}`, // TODO: randomly generate one
       }
     }
   );
 
   return {
     debuggee: spawned,
-    engine: engineFromExe(exe),
+    engine: await engineFromExe(exe),
   };
 }

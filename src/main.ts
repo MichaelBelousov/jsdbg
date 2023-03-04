@@ -2,19 +2,21 @@
 import yargs from "yargs";
 
 interface CliArgs {
-  processId: number;
-  launchProgramCli: string;
+  processId?: number;
+  launchProgramCli?: string;
 }
 
 async function main(args: CliArgs) {
-  if (args.processId && process.command)
-    throw Error("Cannot specify both a command to start a process and a process to attach to")
+  if (!args.processId && !args.launchProgramCli)
+    throw Error("Must specify either a command to launch a process or a process id to attach to")
+
+  if (args.processId && args.launchProgramCli)
+    throw Error("Cannot specify both a command to launch a process and a process id to attach to")
 
   if (args.processId) {
-    // TODO: windows
-    process.kill(args.processId, "SIGUSR1");
-  } else if (process.command) {
-
+    await require("./core/attach").attach(args.processId);
+  } else if (args.launchProgramCli) {
+    await require("./core/launch").attach(args.launchProgramCli);
   }
 }
 
@@ -23,8 +25,8 @@ if (module === require.main) {
     .usage("test")
     .strict()
     .options({
-      p: {
-        alias: "process",
+      processId: {
+        alias: "p",
         type: "number",
       },
     })

@@ -1,7 +1,7 @@
 
+// TODO: rename and add control user input prompting here
 export interface RunContext {
   outputLine(s: string): Promise<void>;
-  complete(): void;
 }
 
 /**
@@ -15,10 +15,6 @@ export class InteractiveRunContext implements RunContext {
 
   async outputLine(line: string) {
     console.log(line);
-  }
-
-  async complete() {
-
   }
 }
 

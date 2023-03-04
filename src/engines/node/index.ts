@@ -1,4 +1,4 @@
-import { BreakPoint, Engine, Frame, Scope, Stack } from "../base";
+import { Breakpoint, Engine, Frame, Scope, Stack } from "../base";
 import { v8 } from "../v8";
 
 import * as inspector from "node:inspector";
@@ -60,23 +60,23 @@ export class nodejs implements Engine {
     throw new Error("Function not implemented.");
   }
 
-  getBreakpoints(): Promise<BreakPoint[]> {
+  getBreakpoints(): Promise<Breakpoint[]> {
     throw new Error("Function not implemented.");
   }
-  setBreakpoint(): Promise<Stack> {
-    //return this._post<any>('Debugger.setBreakpoint');
+
+  async setBreakpoint(b: Breakpoint): Promise<void | Error> {
     throw new Error("Function not implemented.");
   }
-  setBreakPoint(b: BreakPoint): Promise<void | Error> {
+
+  async setBreakOnUncaughtExceptions(val: boolean): Promise<void> {
     throw new Error("Function not implemented.");
   }
-  setBreakOnUncaughtExceptions(val: boolean): Promise<void> {
+
+  async setBreakOnCaughtExceptions(val: boolean): Promise<void> {
     throw new Error("Function not implemented.");
   }
-  setBreakOnCaughtExceptions(val: boolean): Promise<void> {
-    throw new Error("Function not implemented.");
-  }
-  removeBreakPoint(b: BreakPoint): Promise<void | Error> {
+
+  async removeBreakpoint(b: Breakpoint): Promise<void | Error> {
     throw new Error("Function not implemented.");
   }
 }

@@ -7,5 +7,4 @@ if (isNaN(port))
   throw Error(`expected launch with bootloader to be given a port through JSDBG_PORT, but received '${process.env.JSDBG_PORT}'`)
 
 // TODO: allow specifying host
-inspector.open(process.env.JSDBG_PORT, undefined, true);
-
+inspector.open(port, undefined, true);

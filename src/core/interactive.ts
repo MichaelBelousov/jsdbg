@@ -19,7 +19,6 @@ async function main(engine: Engine) {
         break;
       else {
         runCtx.outputLine(`An error was thrown in jsdb:\n${err}`);
-        runCtx.complete();
       }
     }
   }

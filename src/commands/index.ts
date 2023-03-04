@@ -1,7 +1,8 @@
 
 import assert from "assert";
-import { CommandDesc, implSubcommands } from "./base";
+import { CommandDesc, implSubCommands } from "./base";
 import { RunContext } from "../core/run-context";
+import { DebugContext } from "../core/debug-context";
 
 const commands: Record<string, CommandDesc> = {
   b: {
@@ -34,7 +35,7 @@ const commands: Record<string, CommandDesc> = {
   },
 
   /*
-  ...implSubcommands("info", {
+  ...implSubCommands("info", {
     process: {
 
     }
@@ -88,34 +89,45 @@ const commands: Record<string, CommandDesc> = {
   p: {
     aliases: ['print'],
     async parseAndRun(argSrc: string, ctx) {
-      await ctx.debug.engine.eval(argSrc);
+      const val = await ctx.debug.engine.eval(argSrc);
+      ctx.run.outputLine(`$x = ${val}`)
     }
   },
 
   q: {
-    aliases: ['quit']
+    aliases: ['quit'],
+    async parseAndRun(argSrc: string, ctx) {
+      const val = await ctx.debug.engine.eval(argSrc);
+      ctx.run.outputLine(`$x = ${val}`)
+    }
   },
 
   bt: {
-    aliases: ['backtrace']
+    aliases: ['backtrace'],
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
   },
 
   source: {
+    async parseAndRun(_argSrc: string, _ctx) {
+      throw Error("unimplemented");
+    }
   }
 };
 
 const commandsWithAliases = new Map(
   Object.entries(commands)
-    .map(([name, cmd]) => [[name, cmd] as const, cmd.aliases?.map(a => [a, cmd] as const) ?? []])
+    .map(([name, cmd]) => [[name, cmd] as const, cmd.aliases?.map(a => [a, cmd] as const) ?? []] as [string, CommandDesc][])
     .flat(1)
 );
 
 // rename to (and impl) findClosestCommandOrSuggest
-function findClosestCommand(cmd) {
+export function findClosestCommand(cmd: string) {
   return commandsWithAliases.get(cmd);
 }
 
-export async function parseAndRunCommand(src: string, runContext: RunContext) {
+export async function parseAndRunCommand(src: string, ctx: { debug: DebugContext, run: RunContext }) {
   src = src.trim()
   if (src === "")
     return undefined;
@@ -127,12 +139,10 @@ export async function parseAndRunCommand(src: string, runContext: RunContext) {
 
   if (cmd === undefined) {
     // TODO: suggest a command based on distance
-    runContext.outputLine(`No such command '${cmd}'. Use the 'help' and 'apropos' commands to find commands`);
-    // run context will do things like save to history
-    runContext.complete();
+    ctx.run.outputLine(`No such command '${cmd}'. Use the 'help' and 'apropos' commands to find commands`);
     return;
   }
 
-  return cmd.parseAndRun(parsed.groups.argSrc ?? "");
+  return cmd.parseAndRun(parsed.groups.argSrc ?? "", ctx);
 }
 
