@@ -1,0 +1,8 @@
+# vim
+.*.sw[m-v]
+
+# node.js
+node_modules
+
+# typescript
+lib

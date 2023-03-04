@@ -1,0 +1,21 @@
+{
+  "name": "jsdb",
+  "version": "0.1.0",
+  "description": "A (very) gdb-like debugger for javascript (v8 only now)",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "gdb",
+    "debugger"
+  ],
+  "author": {
+    "name": "Michael Belousov"
+  },
+  "license": "GPL3",
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
+}
