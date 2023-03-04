@@ -1,11 +1,12 @@
 
 import assert from "assert";
 import { CommandDesc } from "./base";
+import { RunContext } from "../core/run-context";
 
 const commands: Record<string, CommandDesc> = {
   b: {
     aliases: 'break',
-    parse(argSrc: string) {
+    parseAndRun(argSrc: string) {
 
     }
   },
@@ -66,7 +67,7 @@ const commandsWithAliases = new Map(
     .flat(1)
 );
 
-// TODO: use actual distance
+// rename to (and impl) findClosestCommandOrSuggest
 function findClosestCommand(cmd) {
   return commandsWithAliases.get(cmd);
 }
@@ -80,11 +81,15 @@ export async function parseAndRunCommand(src: string, runContext: RunContext) {
   assert(parsed?.groups?.cmd, `src was non-empty ('${src}') but failed to parse command syntax`);
 
   const cmd = findClosestCommand(parsed.groups.cmd);
+
   if (cmd === undefined) {
+    // TODO: suggest a command based on distance
     runContext.outputLine(`No such command '${cmd}'. Use the 'help' and 'apropos' commands to find commands`);
     // run context will do things like save to history
     runContext.complete();
     return;
   }
+
+  return cmd.parseAndRun(parsed.groups.argSrc ?? "");
 }
 
