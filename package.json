@@ -16,6 +16,11 @@
   },
   "license": "GPL3",
   "devDependencies": {
+    "@types/node": "^18.14.6",
     "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "@types/yargs": "^17.0.22",
+    "yargs": "^17.7.1"
   }
 }
