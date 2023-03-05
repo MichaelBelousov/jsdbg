@@ -1,5 +1,4 @@
 import { InteractiveRunContext } from "./run-context";
-import * as readline from "node:readline/promises";
 import { DebugContext } from "./debug-context";
 import { parseAndRunCommand } from "../commands";
 
@@ -13,7 +12,8 @@ export async function main(debugCtx: DebugContext) {
 
 
   async function repl() {
-    const MAX_ITERS = 1_000_000;
+    // TODO: remove max_iters
+    const MAX_ITERS = 500_000;
     for (let i = 0; i < MAX_ITERS; ++i) {
       try {
         const line = await runCtx.newCmdPrompt();

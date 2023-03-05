@@ -1,9 +1,13 @@
-import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
 //import { v8 } from "../v8";
-
 import assert from "node:assert";
+import events from "node:events";
 
 import WebSocket from "ws";
+import debug from "debug";
+
+import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
+
+const debugWs = debug('ws');
 
 type Result<T> = { error: Error } | { result: T };
 
@@ -57,7 +61,7 @@ export class nodejs implements Engine {
 
   private _currLocation: Location | undefined;
 
-  //private _eventHandler = new events.EventEmitter();
+  private _v8Events = new events.EventEmitter();
 
   on(evt: "paused", cb: () => void): void;
   on(evt: "resumed", cb: () => void): void;
@@ -74,8 +78,8 @@ export class nodejs implements Engine {
     } as const;
 
     const v8Event = v8EventMap[evt as keyof typeof v8EventMap] ?? assert(false, `unknown event '${evt}'`);
-    // FIXME
-    //this._session.on(v8Event, cb);
+
+    this._v8Events.on(v8Event, cb);
   }
 
   async getLocation(): Promise<Location | undefined> {
@@ -105,8 +109,6 @@ export class nodejs implements Engine {
    
     return scriptSrc[currLoc.line - 1];
   }
-
-  // FIXME: should extend event emitter
 
   async eval(src: string, scope?: Scope): Promise<any> {
     return this._send<{result: {type: string, value: any, description: string}}>('Runtime.evaluate', { expression: src }).then(r => {
@@ -144,7 +146,8 @@ export class nodejs implements Engine {
       throw new Error("Method not implemented.");
   }
 
-  /** only valid after connect! */
+  // TODO: remove to v8 engine abstraction
+  /** only valid after connect! (NOTE: undefined probably) */
   private _ws!: WebSocket;
 
   private _msgId = 0;
@@ -153,34 +156,55 @@ export class nodejs implements Engine {
    * @see inspector.Session["post"] for methods
    */
   private async _send<T>(method: string, params: any = {}): Promise<T> {
+    const id = this._msgId;
+    ++this._msgId;
+
     return new Promise<T>((resolve, reject) => {
-      this._ws.once("message", (resp) => resolve(JSON.parse(resp.toString('utf8')) as T));
-      this._ws.once("error", (err) => reject(err));
+      debug(`ws:send:${method}`)("send", method, params);
+
+      const onMsg = (resp: WebSocket.RawData) => {
+        const text = resp.toString('utf8');
+        const json = JSON.parse(text);
+        if (json.id === id) {
+          debug(`ws:send-rcv:${method}`)("send-rcv", json);
+          this._ws.off("message", onMsg);
+          resolve(json);
+        }
+      }
+      this._ws.on("message", onMsg);
+      this._ws.on("error", reject);
+
       this._ws.send(JSON.stringify({
         method,
         params,
-        id: this._msgId,
+        id,
       }));
-      ++this._msgId;
     });
   }
 
+  private _scriptIdToUrl = new Map<string, string>();
+
   async connect(url: string): Promise<void> {
     this._ws = new WebSocket(url);
-    //
-    // FIXME: fix add listening to ws usage
-    this._ws.on("Debugger.resumed", (resp: any) => {
-      if (process.env.DEBUG)
-        console.log(`DEBUG: on Debugger.resumed: ${JSON.stringify(resp)}`);
-      this._currLocation = undefined; // no known location
+
+    this._ws.on("error", console.error);
+    this._ws.on("message", (resp: any) => { 
+      const text = resp.toString("utf8");
+      const json = JSON.parse(text);
+      debug(`ws:rcv:${json.method}`)("message", text);
+      this._v8Events.emit(resp.params);
     });
-    this._ws.on("Debugger.paused", async (resp: { params: V8.OnPauseParams }) => {
-      if (process.env.DEBUG)
-        console.log(`DEBUG: on Debugger.paused: ${JSON.stringify(resp)}`);
-      // TODO: log all the inspector stuff with an env var
-      const top = resp.params.callFrames[resp.params.callFrames.length - 1];
+
+    this._v8Events.on("Debugger.resumed", (resp: any) => {
+      debugWs("Debugger.resumed", resp);
+      this._currLocation = undefined; // no known location while running
+    });
+
+    this._v8Events.on("Debugger.paused", async (params: V8.OnPauseParams) => {
+      debugWs("Debugger.paused", params);
+      const top = params.callFrames[params.callFrames.length - 1];
       const loc = top.location;
-      //const top = resp.params.callFrames[0];
+      //const top = params.callFrames[0];
       this._currLocation = {
         sourceUnit: loc.scriptId,
         line: loc.lineNumber
@@ -188,9 +212,12 @@ export class nodejs implements Engine {
       console.log(`${loc.scriptId}:${loc.lineNumber}:${loc.columnNumber} --> ${await this.readCurrentLine()}`);
     });
 
-    this._ws.on("error", console.error);
+    this._v8Events.on("Debugger.scriptParsed", async (params: any) => {
+      this._scriptIdToUrl.set(params.scriptId, params.url);
+    });
 
     await new Promise(resolve => this._ws.on("open", resolve));
+    await this._send("Debugger.enable");
   }
 
   async disconnect(): Promise<void> {
