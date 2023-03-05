@@ -36,11 +36,11 @@ export interface Engine {
   stepOver(): Promise<any>;
   stepOut(): Promise<any>;
 
-  on(evt: "paused", cb: () => void): Promise<any>;
-  on(evt: "resumed", cb: () => void): Promise<any>;
-  on(evt: "scriptFailedToParse", cb: () => void): Promise<any>;
-  on(evt: "scriptParsed", cb: () => void): Promise<any>;
-  on(evt: "breakpointResolved", cb: () => void): Promise<any>;
+  on(evt: "paused", cb: () => void): void;
+  on(evt: "resumed", cb: () => void): void;
+  on(evt: "scriptFailedToParse", cb: () => void): void;
+  on(evt: "scriptParsed", cb: () => void): void;
+  on(evt: "breakpointResolved", cb: () => void): void;
 
   getStack(): Promise<Stack>;
 

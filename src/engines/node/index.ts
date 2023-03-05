@@ -2,6 +2,8 @@ import { Breakpoint, Engine, Frame, Scope, Stack } from "../base";
 import { v8 } from "../v8";
 
 import * as inspector from "node:inspector";
+import * as events from "node:events";
+import assert from "node:assert";
 
 type Result<T> = { error: Error } | { result: T };
 
@@ -23,14 +25,27 @@ export class nodejs implements Engine {
     this._post("Debugger.enable");
   }
 
-  on(evt: "paused", cb: () => void): Promise<any>;
-  on(evt: "resumed", cb: () => void): Promise<any>;
-  on(evt: "scriptFailedToParse", cb: () => void): Promise<any>;
-  on(evt: "scriptParsed", cb: () => void): Promise<any>;
-  on(evt: "breakpointResolved", cb: () => void): Promise<any>;
-  on(evt: any, cb: () => void): Promise<any> {
-      throw new Error("Method not implemented.");
+  //private _eventHandler = new events.EventEmitter();
+
+  on(evt: "paused", cb: () => void): void;
+  on(evt: "resumed", cb: () => void): void;
+  on(evt: "scriptFailedToParse", cb: () => void): void;
+  on(evt: "scriptParsed", cb: () => void): void;
+  on(evt: "breakpointResolved", cb: () => void): void;
+  on(evt: string, cb: () => void) {
+    const v8EventMap = {
+      "paused": "Debugger.paused",
+      "resumed": "Debugger.resumed",
+      "scriptFailedToParse": "Debugger.scriptFailedToParse",
+      "scriptParsed": "Debugger.scriptParsed",
+      "breakpointResolved": "Debugger.breakpointResolved",
+    } as const;
+
+    const v8Event = v8EventMap[evt as keyof typeof v8EventMap] ?? assert(false, `unknown event '${evt}'`);
+    this._session.on(v8Event, cb);
   }
+
+  // FIXME: should extend event emitter
 
   async eval(src: string, scope?: Scope): Promise<any> {
     return this._post<{result: {type: string, value: any, description: string}}>('Runtime.evaluate', { expression: src }).then(r => {

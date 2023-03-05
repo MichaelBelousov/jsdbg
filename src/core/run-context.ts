@@ -21,6 +21,10 @@ export class InteractiveRunContext implements RunContext {
     this._rl = readline.createInterface({ input: process.stdin, output: process.stdout })
   }
 
+  on(e: "SIGINT", cb: () => void) {
+    this._rl.on("SIGINT", cb);
+  }
+
   async outputLine(line: string) {
     console.log(line);
   }
@@ -37,6 +41,7 @@ export class InteractiveRunContext implements RunContext {
 
   close() {
     this._rl.close();
+    console.error(new Error('manual close'));
   }
 }
 

@@ -109,7 +109,8 @@ const commands: Record<string, CommandDesc> = {
       // (quitError as any).type = "user-quit";
       // throw quitError;
       ctx.run.outputLine("");
-      process.exit();
+      ctx.run.close(); // should naturally end...
+      // process.exit(0);
     }
   },
 

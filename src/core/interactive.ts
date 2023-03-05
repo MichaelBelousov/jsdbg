@@ -6,27 +6,37 @@ import { parseAndRunCommand } from "../commands";
 export async function main(debugCtx: DebugContext) {
   const runCtx = new InteractiveRunContext();
 
-  process.on("SIGINT", async () => {
+  runCtx.on("SIGINT", async () => {
     // TODO: this should be controlled by the run ctx
     await debugCtx.pause();
     await runCtx.newCmdPrompt();
   });
 
-  debugCtx.pause();
 
-  const MAX_ITERS = 1_000_000;
-  for (let i = 0; i < MAX_ITERS; ++i) {
-    try {
-      const line = await runCtx.newCmdPrompt();
-      const _result = await parseAndRunCommand(line, { debug: debugCtx, run: runCtx });
-    } catch (err: any) {
-      if (err.type === "user-quit")
-        break;
-      else {
-        runCtx.outputLine(`An error was thrown in jsdb:\n${err}`);
+  async function repl() {
+    const MAX_ITERS = 1_000_000;
+    for (let i = 0; i < MAX_ITERS; ++i) {
+      try {
+        const line = await runCtx.newCmdPrompt();
+        const _result = await parseAndRunCommand(line, { debug: debugCtx, run: runCtx });
+        // HACK: the result should return whether the command requested a continue
+        if (["c", "continue"].includes(line.trim()))
+          return;
+      } catch (err: any) {
+        if (err.type !== "user-quit") {
+          runCtx.outputLine(`An error was thrown in jsdb:`);
+          console.error(err);
+        } else
+          runCtx.close();
+        return;
       }
     }
   }
 
-  runCtx.close();
+  // TODO: move to (debug+run)ctx
+  debugCtx.engine.on("paused", () => {
+    repl();
+  });
+
+  debugCtx.pause();
 }
