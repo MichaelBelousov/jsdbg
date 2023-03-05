@@ -155,11 +155,9 @@ const commands: Record<string, CommandDesc> = {
 
   // raw inspect
   '_ri': {
-    async parseAndRun(_argSrc, ctx) {
-      const [message, args] = _argSrc.split("$").map(s => JSON.parse(s));
-      const result = await (ctx.debug.engine as nodejs)["_send"](message, args) as any;
-      ctx.run.outputLine("result: ");
-      console.log('error: ', result.error);
+    async parseAndRun(argSrc, ctx) {
+      const result = await eval(argSrc);
+      const _cdp = (ctx.debug.engine as any as nodejs)["_cdp"];
       ctx.run.outputLine("result: " + JSON.stringify(result.result));
     }
   }
