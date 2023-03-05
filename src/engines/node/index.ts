@@ -5,6 +5,8 @@ import * as inspector from "node:inspector";
 import * as events from "node:events";
 import assert from "node:assert";
 
+import WebSocket from "ws";
+
 type Result<T> = { error: Error } | { result: T };
 
 // TODO: move to v8
@@ -68,9 +70,10 @@ export class nodejs implements Engine {
   }
 
   public constructor() {
+    // FIXME: I don't know why I assumed a port-less inspector session init would inspect the target,
+    // looks like I need to setup websockets and send node debugger protocol messages to it through there
     this._session = new inspector.Session();
     this._session.connect();
-    this._post("Debugger.enable");
     this._session.on("Debugger.resumed", (resp: any) => {
       if (process.env.DEBUG)
         console.log(`DEBUG: on Debugger.resumed: ${JSON.stringify(resp)}`);
@@ -88,7 +91,6 @@ export class nodejs implements Engine {
         line: loc.lineNumber
       };
       console.log(`${loc.scriptId}:${loc.lineNumber}:${loc.columnNumber} --> ${await this.readCurrentLine()}`);
-      console.log();
     });
   }
 
@@ -180,12 +182,35 @@ export class nodejs implements Engine {
       throw new Error("Method not implemented.");
   }
 
-  async connect(): Promise<void> {
-    this._session.connect();
+  /** only valid after connect! */
+  private _ws!: WebSocket;
+
+  private _msgId = 0;
+
+  /**
+   * @see inspector.Session["post"] for methods
+   */
+  private async _send(method: string, params: any = {}) {
+    return new Promise((resolve, reject) => {
+      this._ws.once("message", (resp) => resolve(resp));
+      this._ws.once("error", (err) => reject(err));
+      this._ws.send(JSON.stringify({
+        method,
+        params,
+        id: this._msgId,
+      }));
+      ++this._msgId;
+    });
+  }
+
+  async connect(url: string): Promise<void> {
+    this._ws = new WebSocket(url);
+    this._ws.on("error", console.error);
+    await new Promise(resolve => this._ws.on("open", resolve));
   }
 
   async disconnect(): Promise<void> {
-    this._session.disconnect();
+    this._ws.close();
   }
 
   async getStack(): Promise<Stack> {

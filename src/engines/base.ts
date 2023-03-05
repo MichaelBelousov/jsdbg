@@ -24,7 +24,7 @@ export interface Breakpoint {
 }
 
 export interface Engine {
-  connect(): Promise<void>;
+  connect(url: string): Promise<void>;
   disconnect(): Promise<void>;
 
   /** if scope is undefined should operate on the inspected frame */

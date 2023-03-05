@@ -1,17 +1,31 @@
 import which from "which";
 import child_process from "child_process";
+import fs from "fs";
 import { engineFromExe } from "../engines";
 import { DebugContext } from "./debug-context";
+import assert from "assert";
 
 export async function launch(cmd: string): Promise<DebugContext> {
-  const [exeRef, ...args] = cmd.split(/\s+/);
+  const [exeRef, scriptArg, ...otherArgs] = cmd.split(/\s+/);
   // find the exe in PATH
   const exe = await which(exeRef);
   const engine = await engineFromExe(exe);
 
-  const spawned = child_process.spawn(
-    exe,
-    args,
+  const exeCanonicalPath = await fs.promises.readlink(exe);
+
+  // TODO: support others by using require("net").Server instead of built in fork ipc
+  assert(
+    process.execPath === exeCanonicalPath,
+    'Currently only forking is supported, so you must launch the same node exe file, but jsdbg uses node:\n'
+    + process.execPath + "\n"
+    + 'While you tried to launch:\n'
+    + exeCanonicalPath
+  );
+
+  // FIXME:
+  const spawned = child_process.fork(
+    scriptArg,
+    otherArgs,
     {
       stdio: 'inherit',
       env: {
@@ -30,6 +44,10 @@ export async function launch(cmd: string): Promise<DebugContext> {
   // TODO: break here
   spawned.on("exit", () => {
   });
+
+  spawned.on("message", (msg: any) => {
+    void engine.connect(msg.url);
+  })
 
   return new DebugContext(
     engine,
