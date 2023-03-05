@@ -1,7 +1,7 @@
 
 export interface Location {
   /** often a module file */
-  sourceUnit: string;
+  sourceUrl: string;
   line: number;
   col?: number;
 }
@@ -50,9 +50,12 @@ export interface Engine {
 
   getBreakpoints(): Promise<Breakpoint[]>;
   setBreakpoint(b: Breakpoint): Promise<void | Error>;
-  setBreakOnUncaughtExceptions(val: boolean): Promise<void>;
-  setBreakOnCaughtExceptions(val: boolean): Promise<void>;
+  setBreakOnExceptions(val: "none" | "uncaught" | "all"): Promise<void>;
   removeBreakpoint(b: Breakpoint): Promise<void | Error>;
+
+  /** return similar files, searching backwards */
+  findLoadedFile(search: string): Promise<string[] | undefined>;
+  //findFunction(search: string): Promise<string[] | undefined>;
 
   /** will need to change this API when adapting other non-node.js debuggers */
   get bootloaderPath(): string;

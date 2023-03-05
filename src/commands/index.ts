@@ -4,6 +4,7 @@ import { CommandDesc, implSubCommands } from "./base";
 import { RunContext } from "../core/run-context";
 import { DebugContext } from "../core/debug-context";
 import { nodejs } from "../engines";
+import { parseLocation } from "./parse-location";
 
 const commands: Record<string, CommandDesc> = {
   b: {
@@ -11,13 +12,14 @@ const commands: Record<string, CommandDesc> = {
     async parseAndRun(argSrc: string, ctx) {
       // TODO; tokenize and stop on `if`
       const parsed = /\s*(?<loc>\S*)\s*(if\s*(?<cond>.*$))?/.exec(argSrc);
+      const loc
+        = parsed?.groups?.loc
+        ? await parseLocation(parsed.groups.loc, ctx.debug)
+        : await ctx.debug.engine.getLocation();
+
+      assert(loc, "no location was specified and no current location could be determined");
       await ctx.debug.engine.setBreakpoint({
-        location: {
-          sourceUnit: "",
-          line: 1,
-          col: 1,
-        },
-        condition: parsed?.groups?.cond,
+        location: loc
       });
     }
   },

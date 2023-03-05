@@ -30,6 +30,7 @@ export async function launch(cmd: string): Promise<DebugContext> {
       stdio: 'inherit',
       env: {
         ...process.env,
+        // FIXME: why not just pass --inspect to node options in env?
         // FIXME: merge with existing node options in env?
         NODE_OPTIONS: `--require="${engine.bootloaderPath}"`,
         JSDBG_PORT: `${9229}`, // TODO: randomly generate one
@@ -43,6 +44,7 @@ export async function launch(cmd: string): Promise<DebugContext> {
 
   // TODO: break here
   spawned.on("exit", () => {
+    //runContext.stop
   });
 
   await new Promise(resolve => spawned.on("message", (msg: any) => engine.connect(msg.url).then(resolve)));
