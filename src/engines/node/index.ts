@@ -23,6 +23,15 @@ export class nodejs implements Engine {
     this._post("Debugger.enable");
   }
 
+  on(evt: "paused", cb: () => void): Promise<any>;
+  on(evt: "resumed", cb: () => void): Promise<any>;
+  on(evt: "scriptFailedToParse", cb: () => void): Promise<any>;
+  on(evt: "scriptParsed", cb: () => void): Promise<any>;
+  on(evt: "breakpointResolved", cb: () => void): Promise<any>;
+  on(evt: any, cb: () => void): Promise<any> {
+      throw new Error("Method not implemented.");
+  }
+
   async eval(src: string, scope?: Scope): Promise<any> {
     return this._post<{result: {type: string, value: any, description: string}}>('Runtime.evaluate', { expression: src }).then(r => {
       if ("error" in r) {

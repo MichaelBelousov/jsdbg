@@ -3,25 +3,22 @@ import * as readline from "node:readline/promises";
 import { DebugContext } from "./debug-context";
 import { parseAndRunCommand } from "../commands";
 
-async function prompt(rl: readline.Interface) {
-  // const signal = AbortSignal.abort();
-  return rl.question("(jsdb) "/*, { signal }*/);
-}
-
-export async function main(ctx: DebugContext) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+export async function main(debugCtx: DebugContext) {
   const runCtx = new InteractiveRunContext();
 
   process.on("SIGINT", async () => {
-    await ctx.engine.pause()
-    await prompt(rl);
+    // TODO: this should be controlled by the run ctx
+    await debugCtx.pause();
+    await runCtx.newCmdPrompt();
   });
 
-  const MAX_ITERS = 500;
+  debugCtx.pause();
+
+  const MAX_ITERS = 1_000_000;
   for (let i = 0; i < MAX_ITERS; ++i) {
     try {
-      const line = await prompt(rl);
-      const _result = await parseAndRunCommand(line, { debug: ctx, run: runCtx });
+      const line = await runCtx.newCmdPrompt();
+      const _result = await parseAndRunCommand(line, { debug: debugCtx, run: runCtx });
     } catch (err: any) {
       if (err.type === "user-quit")
         break;
@@ -31,5 +28,5 @@ export async function main(ctx: DebugContext) {
     }
   }
 
-  rl.close();
+  runCtx.close();
 }

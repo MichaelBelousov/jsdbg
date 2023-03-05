@@ -46,6 +46,9 @@ export const v8: Engine = {
     removeBreakpoint: function(b: Breakpoint): Promise<void | Error> {
         throw new Error("Function not implemented.");
     },
-    get bootloaderPath(): string { return ""; }
+    get bootloaderPath(): string { return ""; },
+    on: function(evt: string, cb: () => void): Promise<any> {
+        throw new Error("Function not implemented.");
+    }
 };
 

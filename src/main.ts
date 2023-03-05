@@ -23,8 +23,9 @@ async function main(args: CliArgs) {
 
 if (module === require.main) {
   const args = yargs(process.argv.slice(2))
-    .usage("test")
+    .usage("$0 [-p PID | -- JS_INTERPRETER ARGS]")
     .strict()
+    .help("h")
     .options({
       processId: {
         alias: "p",

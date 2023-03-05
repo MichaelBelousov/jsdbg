@@ -31,8 +31,8 @@ export async function launch(cmd: string): Promise<DebugContext> {
   spawned.on("exit", () => {
   });
 
-  return {
-    debuggee: spawned,
-    engine: await engineFromExe(exe),
-  };
+  return new DebugContext(
+    await engineFromExe(exe),
+    spawned,
+  );
 }

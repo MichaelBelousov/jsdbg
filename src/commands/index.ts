@@ -115,13 +115,37 @@ const commands: Record<string, CommandDesc> = {
 
   bt: {
     aliases: ['backtrace'],
-    async parseAndRun(_argSrc: string, _ctx) {
+    async parseAndRun(_argSrc, _ctx) {
       throw Error("unimplemented");
     }
   },
 
   source: {
-    async parseAndRun(_argSrc: string, _ctx) {
+    async parseAndRun(_argSrc, _ctx) {
+      throw Error("unimplemented");
+    }
+  },
+
+  commands: {
+    // TODO: check and align with gdb behavior
+    async parseAndRun(argSrc, ctx) {
+      const lastSetBreakpoint = ctx.debug.lastSetBreakpoint;
+      if (!lastSetBreakpoint) {
+        ctx.run.outputLine("No previous breakpoint");
+        return;
+      }
+      argSrc = argSrc.trim();
+      lastSetBreakpoint.commands = [];
+
+      if (argSrc) {
+        lastSetBreakpoint.commands.push(argSrc);
+      } else {
+        const commands = [] as string[];
+        let command: string;
+        while ((command = (await ctx.run.additionalLinePrompt()).trim()) !== "end") {
+          lastSetBreakpoint.commands.push(argSrc);
+        }
+      }
       throw Error("unimplemented");
     }
   },
