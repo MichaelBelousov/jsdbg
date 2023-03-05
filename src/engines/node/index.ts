@@ -7,11 +7,14 @@ import debug from "debug";
 
 import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
 
+import CDP from "chrome-remote-interface";
+
 const debugWs = debug('ws');
 
 type Result<T> = { error: Error } | { result: T };
 
 // TODO: move to v8
+// TODO: official types are suggested here: https://chromedevtools.github.io/devtools-protocol/
 namespace V8 {
   // https://chromedevtools.github.io/devtools-protocol/v8/Debugger/#type-Location
   export interface Location {
@@ -123,7 +126,9 @@ export class nodejs implements Engine {
   }
 
   async pause(): Promise<any> {
-    return this._send('Debugger.pause');
+    await this._send('Debugger.pause');
+    // we do not get a pause event from the inspector api if we caused it, so we must emit it ourselves for consumers
+    this._v8Events.emit("Debugger.paused");
   }
 
   async resume(): Promise<any> {
@@ -149,6 +154,7 @@ export class nodejs implements Engine {
   // TODO: remove to v8 engine abstraction
   /** only valid after connect! (NOTE: undefined probably) */
   private _ws!: WebSocket;
+  private _cdp!: CDP.Client;
 
   private _msgId = 0;
 
@@ -185,6 +191,9 @@ export class nodejs implements Engine {
   private _scriptIdToUrl = new Map<string, string>();
 
   async connect(url: string): Promise<void> {
+    this._cdp = await CDP({
+      target: url,
+    });
     this._ws = new WebSocket(url);
 
     this._ws.on("error", console.error);

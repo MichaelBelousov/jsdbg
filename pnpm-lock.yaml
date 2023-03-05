@@ -1,6 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@types/chrome-remote-interface': ^0.31.9
   '@types/debug': ^4.1.7
   '@types/node': ^18.14.6
   '@types/source-map-support': ^0.5.6
@@ -8,6 +9,7 @@ specifiers:
   '@types/ws': ^8.5.4
   '@types/yargs': ^17.0.22
   bufferutil: ^4.0.7
+  chrome-remote-interface: ^0.32.1
   debug: ^4.3.4
   source-map-support: ^0.5.21
   typescript: ^4.9.5
@@ -17,12 +19,14 @@ specifiers:
   yargs: ^17.7.1
 
 dependencies:
+  '@types/chrome-remote-interface': 0.31.9
   '@types/debug': 4.1.7
   '@types/source-map-support': 0.5.6
   '@types/which': 2.0.2
   '@types/ws': 8.5.4
   '@types/yargs': 17.0.22
   bufferutil: 4.0.7
+  chrome-remote-interface: 0.32.1_2adebc2xdjqbcvbjxkodkhadp4
   debug: 4.3.4
   source-map-support: 0.5.21
   utf-8-validate: 6.0.3
@@ -35,6 +39,12 @@ devDependencies:
   typescript: 4.9.5
 
 packages:
+
+  /@types/chrome-remote-interface/0.31.9:
+    resolution: {integrity: sha512-U4z4aCmQ/lhtKC1g2N+qbchikPnLbd6u8P3F4G3/ougX5rMQnW4a17u+kyBmKwtRzX9Wu3i14ZeIfbk0xTyUUQ==}
+    dependencies:
+      devtools-protocol: 0.0.927104
+    dev: false
 
   /@types/debug/4.1.7:
     resolution: {integrity: sha512-9AonUzyTjXXhEOa0DnqpzZi6VHlqKMswga9EXjpXnnqxwLtdvPPtlO8evrI5D9S6asFRCQ6v+wpiUKbw+vKqyg==}
@@ -99,6 +109,17 @@ packages:
       node-gyp-build: 4.6.0
     dev: false
 
+  /chrome-remote-interface/0.32.1_2adebc2xdjqbcvbjxkodkhadp4:
+    resolution: {integrity: sha512-CU3/K/8YlU2H0DjsLRbxPsG4piiSGUcIy6GkGXF11SqOYoIeuUBivOsGXScaZnTyC1p4wFSR+GNmAM434/ALWw==}
+    hasBin: true
+    dependencies:
+      commander: 2.11.0
+      ws: 7.5.9_2adebc2xdjqbcvbjxkodkhadp4
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+    dev: false
+
   /cliui/8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
@@ -119,6 +140,10 @@ packages:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
     dev: false
 
+  /commander/2.11.0:
+    resolution: {integrity: sha512-b0553uYA5YAEGgyYIGYROzKQ7X5RAqedkfjiZxwi0kL1g3bOaBNNZfYkzt/CL0umgD5wc9Jec2FbB98CjkMRvQ==}
+    dev: false
+
   /debug/4.3.4:
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
     engines: {node: '>=6.0'}
@@ -129,6 +154,10 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.2
+    dev: false
+
+  /devtools-protocol/0.0.927104:
+    resolution: {integrity: sha512-5jfffjSuTOv0Lz53wTNNTcCUV8rv7d82AhYcapj28bC2B5tDxEZzVb7k51cNxZP2KHw24QE+sW7ZuSeD9NfMpA==}
     dev: false
 
   /emoji-regex/8.0.0:
@@ -225,6 +254,22 @@ packages:
       ansi-styles: 4.3.0
       string-width: 4.2.3
       strip-ansi: 6.0.1
+    dev: false
+
+  /ws/7.5.9_2adebc2xdjqbcvbjxkodkhadp4:
+    resolution: {integrity: sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==}
+    engines: {node: '>=8.3.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: ^5.0.2
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dependencies:
+      bufferutil: 4.0.7
+      utf-8-validate: 6.0.3
     dev: false
 
   /ws/8.12.1_2adebc2xdjqbcvbjxkodkhadp4:
