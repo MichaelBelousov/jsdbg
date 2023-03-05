@@ -10,7 +10,6 @@ export async function main(debugCtx: DebugContext) {
     await debugCtx.pause();
   });
 
-
   async function repl() {
     // TODO: remove max_iters
     const MAX_ITERS = 500_000;
@@ -32,9 +31,10 @@ export async function main(debugCtx: DebugContext) {
     }
   }
 
-  // TODO: move to (debug+run)ctx
+  // TODO: this event should be on the ctx, we shouldn't access the engine directly
   debugCtx.engine.on("paused", () => {
-    repl();
+    // HACK: wait for other listeners first, e.g. to report the stop status
+    setTimeout(repl, 50);
   });
 
   debugCtx.pause();

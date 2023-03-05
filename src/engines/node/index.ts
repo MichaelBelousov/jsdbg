@@ -1,18 +1,14 @@
 //import { v8 } from "../v8";
 import assert from "node:assert";
-import events from "node:events";
 
-import WebSocket from "ws";
+import chalk from "chalk";
 import debug from "debug";
 
 import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
 
 import CDP from "chrome-remote-interface";
 
-const debugWs = debug('ws');
 const debugJsdbg = debug('jsdbg');
-
-type Result<T> = { error: Error } | { result: T };
 
 export class nodejs implements Engine {
   public constructor() {
@@ -50,7 +46,35 @@ export class nodejs implements Engine {
   /** maps scriptId to scriptSource lines */
   private _scriptSrcsCache = new Map<string, string[]>();
 
-  async readCurrentLine(): Promise<string | undefined> {
+  async printLocation(loc: Location, { viewWindow = 3 } = {}) {
+    const sourceId = loc.sourceUnit;
+    let scriptSrc = this._scriptSrcsCache.get(sourceId);
+    if (scriptSrc === undefined) {
+      try {
+        scriptSrc = await this._cdp.Debugger.getScriptSource({ scriptId: sourceId }).then(r => {
+          return r.scriptSource.split('\n');
+        });
+      } catch {
+        console.log("couldn't get script for location: ", loc);
+        return;
+      }
+      assert(scriptSrc);
+      this._scriptSrcsCache.set(sourceId, scriptSrc);
+    }
+   
+    // TODO: syntax highlighting
+    const lines = scriptSrc
+      .slice(loc.line - viewWindow + 1, loc.line + viewWindow)
+      .map((l,i) => i === viewWindow - 1 ? `-> ${l}` : ` | ${l}`)
+      .join('\n');
+
+    const scriptUrl = this._scriptIdToUrl.get(loc.sourceUnit);
+    console.log(chalk.italic.yellow(`===== ${scriptUrl}:${loc.line}${loc.col && loc.col !== 0 ? `:${loc.col}` : ""} =====`));
+    console.log(lines);
+    console.log(chalk.italic.yellow(`==========`));
+  }
+
+  async readAroundCurrentLine(): Promise<string | undefined> {
     const currLoc = this._currLocation;
     const sourceId = currLoc?.sourceUnit;
     if (!sourceId)
@@ -64,7 +88,8 @@ export class nodejs implements Engine {
       this._scriptSrcsCache.set(sourceId, scriptSrc);
     }
    
-    return scriptSrc[currLoc.line - 1];
+    const WINDOW = 3;
+    return scriptSrc.slice(currLoc.line - WINDOW + 1, currLoc.line + WINDOW).join('\n');
   }
 
   async eval(src: string, scope?: Scope): Promise<any> {
@@ -113,25 +138,20 @@ export class nodejs implements Engine {
 
     debugJsdbg("connected");
 
-    await this._cdp.Debugger.enable();
-
     debugJsdbg("Debugger enabled");
 
     const _unsub1 = this._cdp.Debugger.resumed(() => {
-      debugWs("Debugger.resumed");
       this._currLocation = undefined; // no known location while running
     });
 
     const _unsub2 = this._cdp.Debugger.paused(async (params) => {
-      debugWs("Debugger.paused", params);
-      const top = params.callFrames[params.callFrames.length - 1];
+      const top = params.callFrames[0];
       const loc = top.location;
       this._currLocation = {
         sourceUnit: loc.scriptId,
         line: loc.lineNumber
       };
-      // FIXME: doesn't belong here
-      console.log(`${loc.scriptId}:${loc.lineNumber}:${loc.columnNumber} --> ${await this.readCurrentLine()}`);
+      console.log(await this.printLocation(this._currLocation));
     });
 
     this._cdp.Debugger.on('scriptParsed', (params) => {
@@ -141,10 +161,14 @@ export class nodejs implements Engine {
     this._cdp.on("event", (message) => {
       debug("cdp:verbose")(message);
     });
+
+    await this._cdp.Debugger.enable();
+    await this._cdp.Runtime.runIfWaitingForDebugger();
   }
 
   async disconnect(): Promise<void> {
     this._cdp.close();
+    debugJsdbg("cdp connection closed");
   }
 
   async getStack(): Promise<Stack> {
