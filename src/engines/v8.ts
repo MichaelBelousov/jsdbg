@@ -1,4 +1,4 @@
-import { Breakpoint, Engine, Frame, Scope, Stack } from "./base";
+import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "./base";
 
 export const v8: Engine = {
     connect: function(): Promise<void> {
@@ -48,6 +48,9 @@ export const v8: Engine = {
     },
     get bootloaderPath(): string { return ""; },
     on: function(evt: string, cb: () => void): Promise<any> {
+        throw new Error("Function not implemented.");
+    },
+    getLocation: function(): Promise<Location | undefined> {
         throw new Error("Function not implemented.");
     }
 };

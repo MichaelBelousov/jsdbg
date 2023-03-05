@@ -56,8 +56,10 @@ const commands: Record<string, CommandDesc> = {
 
   n: {
     aliases: ['next'],
-    async parseAndRun(_argSrc: string, ctx) {
+    async parseAndRun(_argSrc, ctx) {
       await ctx.debug.engine.stepOver();
+      const loc = await ctx.debug.engine.getLocation();
+      ctx.run.outputLine(JSON.stringify(loc));
     }
   },
 
@@ -109,8 +111,8 @@ const commands: Record<string, CommandDesc> = {
       // (quitError as any).type = "user-quit";
       // throw quitError;
       ctx.run.outputLine("");
-      ctx.run.close(); // should naturally end...
-      // process.exit(0);
+      ctx.run.close(); // this should end the event loop gracefully but doesn't yet
+      process.exit(0);
     }
   },
 

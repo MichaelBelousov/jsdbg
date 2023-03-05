@@ -32,7 +32,7 @@ export async function launch(cmd: string): Promise<DebugContext> {
   });
 
   return new DebugContext(
-    await engineFromExe(exe),
+    engine,
     spawned,
   );
 }

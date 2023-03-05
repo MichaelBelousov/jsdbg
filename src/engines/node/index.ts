@@ -1,4 +1,4 @@
-import { Breakpoint, Engine, Frame, Scope, Stack } from "../base";
+import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
 import { v8 } from "../v8";
 
 import * as inspector from "node:inspector";
@@ -7,11 +7,59 @@ import assert from "node:assert";
 
 type Result<T> = { error: Error } | { result: T };
 
+// TODO: move to v8
+namespace V8 {
+  // https://chromedevtools.github.io/devtools-protocol/v8/Debugger/#type-Location
+  export interface Location {
+    scriptId: string;
+    lineNumber: number;
+    columnNumber: number;
+  }
+
+  // https://chromedevtools.github.io/devtools-protocol/v8/Debugger/#type-Scope
+  export interface Scope {
+    type: "global" | "local" | "with" | "closure" | "catch" | "block" | "script" | "eval" | "module" | "wasm-expression-stack";
+    object: any;
+    name?: string;
+    startLocation?: Location;
+    endLocation?: Location;
+  }
+
+  // https://chromedevtools.github.io/devtools-protocol/v8/Debugger/#type-CallFrame
+  export interface CallFrame {
+    callFrameId: {
+      type: string;
+      externalURL?: string;
+    },
+    functionName: string;
+    functionLocation?: Location;
+    location: Location;
+    scopeChain: Scope;
+    this: any;
+    returnValue?: any;
+    canBeRestarted?: boolean;
+  }
+
+  export interface OnPauseParams {
+    callFrames: CallFrame[];
+    reason: "ambiguous" | "assert" | "CSPViolation" | "debugCommand" | "DOM" | "EventListener" | "exception" | "instrumentation" | "OOM" | "other" | "promiseRejection" |" XHR";
+    data?: any;
+    hitBreakpoints: string[];
+    // asyncStackTrace
+    // asyncStackTraceId
+    // asyncCallStackTraceId
+  }
+}
+
 export class nodejs implements Engine {
   private _session: inspector.Session;
 
   private async _post<T>(message: string, ...args: any[]): Promise<Result<T>> {
     // TODO: consider using require("util").promisify (need to check support though...)
+    // TODO: use npm debug
+    if (process.env.DEBUG) {
+      console.log(`DEBUG: _post ${message}: ${JSON.stringify(args)}`);
+    }
     return await new Promise<Result<T>>((resolve) => this._session.post(
       message,
       ...args,
@@ -23,7 +71,28 @@ export class nodejs implements Engine {
     this._session = new inspector.Session();
     this._session.connect();
     this._post("Debugger.enable");
+    this._session.on("Debugger.resumed", (resp: any) => {
+      if (process.env.DEBUG)
+        console.log(`DEBUG: on Debugger.resumed: ${JSON.stringify(resp)}`);
+      this._currLocation = undefined; // no known location
+    });
+    this._session.on("Debugger.paused", async (resp: { params: V8.OnPauseParams }) => {
+      if (process.env.DEBUG)
+        console.log(`DEBUG: on Debugger.paused: ${JSON.stringify(resp)}`);
+      // TODO: log all the inspector stuff with an env var
+      const top = resp.params.callFrames[resp.params.callFrames.length - 1];
+      const loc = top.location;
+      //const top = resp.params.callFrames[0];
+      this._currLocation = {
+        sourceUnit: loc.scriptId,
+        line: loc.lineNumber
+      };
+      console.log(`${loc.scriptId}:${loc.lineNumber}:${loc.columnNumber} --> ${await this.readCurrentLine()}`);
+      console.log();
+    });
   }
+
+  private _currLocation: Location | undefined;
 
   //private _eventHandler = new events.EventEmitter();
 
@@ -43,6 +112,34 @@ export class nodejs implements Engine {
 
     const v8Event = v8EventMap[evt as keyof typeof v8EventMap] ?? assert(false, `unknown event '${evt}'`);
     this._session.on(v8Event, cb);
+  }
+
+  async getLocation(): Promise<Location | undefined> {
+    // NOTE: this is invalid once we resume?
+    return this._currLocation;
+  }
+
+  /** maps scriptId to scriptSource lines */
+  private _scriptSrcsCache = new Map<string, string[]>();
+
+  async readCurrentLine(): Promise<string | undefined> {
+    const currLoc = this._currLocation;
+    const sourceId = currLoc?.sourceUnit;
+    if (!sourceId)
+      return;
+    let scriptSrc = this._scriptSrcsCache.get(sourceId);
+    if (scriptSrc === undefined) {
+      scriptSrc = await this._post<{scriptSource: string}>('Debugger.getScriptSource', { scriptId: sourceId }).then(r => {
+        if ("error" in r)
+          throw Object.assign(Error(), r.error);
+        else
+          return r.result.scriptSource.split('\n');
+      });
+      assert(scriptSrc);
+      this._scriptSrcsCache.set(sourceId, scriptSrc);
+    }
+   
+    return scriptSrc[currLoc.line - 1];
   }
 
   // FIXME: should extend event emitter

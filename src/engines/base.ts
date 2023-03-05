@@ -1,21 +1,21 @@
 
-export interface Scope {
-  variables: Record<string, any>;
-}
-
-export interface Frame extends Scope {
-  //scope: []
-}
-
-export interface Stack {
-  frames: Frame[];
-}
-
 export interface Location {
   /** often a module file */
   sourceUnit: string;
   line: number;
   col?: number;
+}
+
+export interface Scope {
+  //variables: Record<string, any>;
+}
+
+export interface Frame extends Scope {
+  location: Location;
+}
+
+export interface Stack {
+  frames: Frame[];
 }
 
 export interface Breakpoint {
@@ -29,6 +29,8 @@ export interface Engine {
 
   /** if scope is undefined should operate on the inspected frame */
   eval(src: string, scope?: Scope): Promise<any>;
+
+  getLocation(): Promise<Location | undefined>;
 
   pause(): Promise<any>;
   resume(): Promise<any>;

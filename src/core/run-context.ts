@@ -41,7 +41,6 @@ export class InteractiveRunContext implements RunContext {
 
   close() {
     this._rl.close();
-    console.error(new Error('manual close'));
   }
 }
 

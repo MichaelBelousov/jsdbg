@@ -9,7 +9,6 @@ export async function main(debugCtx: DebugContext) {
   runCtx.on("SIGINT", async () => {
     // TODO: this should be controlled by the run ctx
     await debugCtx.pause();
-    await runCtx.newCmdPrompt();
   });
 
 
