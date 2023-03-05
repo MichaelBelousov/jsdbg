@@ -157,7 +157,7 @@ const commands: Record<string, CommandDesc> = {
   '_ri': {
     async parseAndRun(_argSrc, ctx) {
       const [message, args] = _argSrc.split("$").map(s => JSON.parse(s));
-      const result = await (ctx.debug.engine as nodejs)["_post"](message, args) as any;
+      const result = await (ctx.debug.engine as nodejs)["_send"](message, args) as any;
       ctx.run.outputLine("result: ");
       console.log('error: ', result.error);
       ctx.run.outputLine("result: " + JSON.stringify(result.result));

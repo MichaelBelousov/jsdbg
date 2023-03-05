@@ -1,8 +1,6 @@
 import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
-import { v8 } from "../v8";
+//import { v8 } from "../v8";
 
-import * as inspector from "node:inspector";
-import * as events from "node:events";
 import assert from "node:assert";
 
 import WebSocket from "ws";
@@ -54,44 +52,7 @@ namespace V8 {
 }
 
 export class nodejs implements Engine {
-  private _session: inspector.Session;
-
-  private async _post<T>(message: string, ...args: any[]): Promise<Result<T>> {
-    // TODO: consider using require("util").promisify (need to check support though...)
-    // TODO: use npm debug
-    if (process.env.DEBUG) {
-      console.log(`DEBUG: _post ${message}: ${JSON.stringify(args)}`);
-    }
-    return await new Promise<Result<T>>((resolve) => this._session.post(
-      message,
-      ...args,
-      (err: any, data: T) => err ? resolve({ error: err }) : resolve({ result: data })
-    ));
-  }
-
   public constructor() {
-    // FIXME: I don't know why I assumed a port-less inspector session init would inspect the target,
-    // looks like I need to setup websockets and send node debugger protocol messages to it through there
-    this._session = new inspector.Session();
-    this._session.connect();
-    this._session.on("Debugger.resumed", (resp: any) => {
-      if (process.env.DEBUG)
-        console.log(`DEBUG: on Debugger.resumed: ${JSON.stringify(resp)}`);
-      this._currLocation = undefined; // no known location
-    });
-    this._session.on("Debugger.paused", async (resp: { params: V8.OnPauseParams }) => {
-      if (process.env.DEBUG)
-        console.log(`DEBUG: on Debugger.paused: ${JSON.stringify(resp)}`);
-      // TODO: log all the inspector stuff with an env var
-      const top = resp.params.callFrames[resp.params.callFrames.length - 1];
-      const loc = top.location;
-      //const top = resp.params.callFrames[0];
-      this._currLocation = {
-        sourceUnit: loc.scriptId,
-        line: loc.lineNumber
-      };
-      console.log(`${loc.scriptId}:${loc.lineNumber}:${loc.columnNumber} --> ${await this.readCurrentLine()}`);
-    });
   }
 
   private _currLocation: Location | undefined;
@@ -113,7 +74,8 @@ export class nodejs implements Engine {
     } as const;
 
     const v8Event = v8EventMap[evt as keyof typeof v8EventMap] ?? assert(false, `unknown event '${evt}'`);
-    this._session.on(v8Event, cb);
+    // FIXME
+    //this._session.on(v8Event, cb);
   }
 
   async getLocation(): Promise<Location | undefined> {
@@ -131,11 +93,11 @@ export class nodejs implements Engine {
       return;
     let scriptSrc = this._scriptSrcsCache.get(sourceId);
     if (scriptSrc === undefined) {
-      scriptSrc = await this._post<{scriptSource: string}>('Debugger.getScriptSource', { scriptId: sourceId }).then(r => {
+      scriptSrc = await this._send<{scriptSource: string}>('Debugger.getScriptSource', { scriptId: sourceId }).then(r => {
         if ("error" in r)
           throw Object.assign(Error(), r.error);
         else
-          return r.result.scriptSource.split('\n');
+          return r.scriptSource.split('\n');
       });
       assert(scriptSrc);
       this._scriptSrcsCache.set(sourceId, scriptSrc);
@@ -147,35 +109,35 @@ export class nodejs implements Engine {
   // FIXME: should extend event emitter
 
   async eval(src: string, scope?: Scope): Promise<any> {
-    return this._post<{result: {type: string, value: any, description: string}}>('Runtime.evaluate', { expression: src }).then(r => {
+    return this._send<{result: {type: string, value: any, description: string}}>('Runtime.evaluate', { expression: src }).then(r => {
       if ("error" in r) {
-        const err = { ...r.error };
+        const err = { ...r.error as any };
         Object.setPrototypeOf(err, Error);
         return err;
       } else {
-        return r.result.result.value;
+        return r.result.value;
       }
     });
   }
 
   async pause(): Promise<any> {
-    return this._post('Debugger.pause');
+    return this._send('Debugger.pause');
   }
 
   async resume(): Promise<any> {
-    return this._post('Debugger.resume');
+    return this._send('Debugger.resume');
   }
 
   async stepInto(): Promise<any> {
-    return this._post('Debugger.stepInto');
+    return this._send('Debugger.stepInto');
   }
 
   async stepOver(): Promise<any> {
-    return this._post('Debugger.stepOver');
+    return this._send('Debugger.stepOver');
   }
 
   async stepOut(): Promise<any> {
-    return this._post('Debugger.stepOut');
+    return this._send('Debugger.stepOut');
   }
 
   async inspectedFrame(): Promise<Frame> {
@@ -190,9 +152,9 @@ export class nodejs implements Engine {
   /**
    * @see inspector.Session["post"] for methods
    */
-  private async _send(method: string, params: any = {}) {
-    return new Promise((resolve, reject) => {
-      this._ws.once("message", (resp) => resolve(resp));
+  private async _send<T>(method: string, params: any = {}): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this._ws.once("message", (resp) => resolve(JSON.parse(resp.toString('utf8')) as T));
       this._ws.once("error", (err) => reject(err));
       this._ws.send(JSON.stringify({
         method,
@@ -205,7 +167,29 @@ export class nodejs implements Engine {
 
   async connect(url: string): Promise<void> {
     this._ws = new WebSocket(url);
+    //
+    // FIXME: fix add listening to ws usage
+    this._ws.on("Debugger.resumed", (resp: any) => {
+      if (process.env.DEBUG)
+        console.log(`DEBUG: on Debugger.resumed: ${JSON.stringify(resp)}`);
+      this._currLocation = undefined; // no known location
+    });
+    this._ws.on("Debugger.paused", async (resp: { params: V8.OnPauseParams }) => {
+      if (process.env.DEBUG)
+        console.log(`DEBUG: on Debugger.paused: ${JSON.stringify(resp)}`);
+      // TODO: log all the inspector stuff with an env var
+      const top = resp.params.callFrames[resp.params.callFrames.length - 1];
+      const loc = top.location;
+      //const top = resp.params.callFrames[0];
+      this._currLocation = {
+        sourceUnit: loc.scriptId,
+        line: loc.lineNumber
+      };
+      console.log(`${loc.scriptId}:${loc.lineNumber}:${loc.columnNumber} --> ${await this.readCurrentLine()}`);
+    });
+
     this._ws.on("error", console.error);
+
     await new Promise(resolve => this._ws.on("open", resolve));
   }
 

@@ -45,9 +45,7 @@ export async function launch(cmd: string): Promise<DebugContext> {
   spawned.on("exit", () => {
   });
 
-  spawned.on("message", (msg: any) => {
-    void engine.connect(msg.url);
-  })
+  await new Promise(resolve => spawned.on("message", (msg: any) => engine.connect(msg.url).then(resolve)));
 
   return new DebugContext(
     engine,
