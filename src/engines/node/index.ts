@@ -10,6 +10,7 @@ import { Breakpoint, Engine, Frame, Location, Scope, Stack } from "../base";
 import CDP from "chrome-remote-interface";
 
 const debugWs = debug('ws');
+const debugJsdbg = debug('jsdbg');
 
 type Result<T> = { error: Error } | { result: T };
 
@@ -93,7 +94,7 @@ export class nodejs implements Engine {
   }
 
   async inspectedFrame(): Promise<Frame> {
-      throw new Error("Method not implemented.");
+    throw new Error("Method not implemented.");
   }
 
   // TODO: remove to v8 engine abstraction
@@ -105,15 +106,23 @@ export class nodejs implements Engine {
   private _scriptIdToUrl = new Map<string, string>();
 
   async connect(url: string): Promise<void> {
+    debugJsdbg(url);
     this._cdp = await CDP({
       target: url,
     });
 
-    this._cdp.on("Debugger.resumed", () => {
+    debugJsdbg("connected");
+
+    await this._cdp.Debugger.enable();
+
+    debugJsdbg("Debugger enabled");
+
+    const _unsub1 = this._cdp.Debugger.resumed(() => {
+      debugWs("Debugger.resumed");
       this._currLocation = undefined; // no known location while running
     });
 
-    this._cdp.on("Debugger.paused", async (params) => {
+    const _unsub2 = this._cdp.Debugger.paused(async (params) => {
       debugWs("Debugger.paused", params);
       const top = params.callFrames[params.callFrames.length - 1];
       const loc = top.location;
@@ -129,7 +138,9 @@ export class nodejs implements Engine {
       this._scriptIdToUrl.set(params.scriptId, params.url);
     });
 
-    await this._cdp.Debugger.enable();
+    this._cdp.on("event", (message) => {
+      debug("cdp:verbose")(message);
+    });
   }
 
   async disconnect(): Promise<void> {
