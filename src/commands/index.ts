@@ -131,6 +131,19 @@ const commands: Record<string, CommandDesc> = {
     }
   },
 
+  source: {
+    async parseAndRun(_argSrc, _ctx) {
+      throw Error("unimplemented");
+    }
+  },
+
+  history: {
+    async parseAndRun(argSrc, ctx) {
+      for (const line of ctx.run.history)
+        ctx.run.outputLine(line);
+    }
+  }
+
   commands: {
     // TODO: check and align with gdb behavior
     async parseAndRun(argSrc, ctx) {

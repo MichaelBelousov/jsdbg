@@ -3,7 +3,7 @@ import { DebugContext } from "./debug-context";
 import { parseAndRunCommand } from "../commands";
 
 export async function main(debugCtx: DebugContext) {
-  const runCtx = new InteractiveRunContext();
+  const runCtx = await InteractiveRunContext.create();
 
   runCtx.on("SIGINT", async () => {
     // TODO: this should be controlled by the run ctx
