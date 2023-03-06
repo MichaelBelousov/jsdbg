@@ -1,5 +1,5 @@
 {
-  "name": "jsdb",
+  "name": "jsdbg",
   "version": "0.1.0",
   "description": "A (very) gdb-like debugger frontend for (node.js) JavaScript",
   "main": "lib/index.js",
