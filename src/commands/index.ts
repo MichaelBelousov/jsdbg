@@ -1,5 +1,6 @@
 
-import assert from "assert";
+import assert from "node:assert";
+import fs from "node:fs";
 import { CommandDesc, implSubCommands } from "./base";
 import { RunContext } from "../core/run-context";
 import { DebugContext } from "../core/debug-context";
@@ -126,14 +127,12 @@ const commands: Record<string, CommandDesc> = {
   },
 
   source: {
-    async parseAndRun(_argSrc, _ctx) {
-      throw Error("unimplemented");
-    }
-  },
-
-  source: {
-    async parseAndRun(_argSrc, _ctx) {
-      throw Error("unimplemented");
+    async parseAndRun(argSrc, ctx) {
+      const file = argSrc.trim();
+      const lines = await fs.promises.readFile(file, { encoding: 'utf8' }).then(t => t.split('\n').filter(c => c.trim() !== ''));
+      for (const line of lines) {
+        await parseAndRunCommand(line, ctx);
+      }
     }
   },
 
@@ -142,7 +141,7 @@ const commands: Record<string, CommandDesc> = {
       for (const line of ctx.run.history)
         ctx.run.outputLine(line);
     }
-  }
+  },
 
   commands: {
     // TODO: check and align with gdb behavior
