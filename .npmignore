@@ -1,0 +1,4 @@
+# TODO: do a whitelist, but atm there is very little in this repo
+tsconfig.json
+test
+src
