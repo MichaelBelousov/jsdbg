@@ -11,9 +11,7 @@ export async function main(debugCtx: DebugContext) {
   });
 
   async function repl() {
-    // TODO: remove max_iters
-    const MAX_ITERS = 500_000;
-    for (let i = 0; i < MAX_ITERS; ++i) {
+    while (true) {
       try {
         const line = await runCtx.newCmdPrompt();
         const _result = await parseAndRunCommand(line, { debug: debugCtx, run: runCtx });

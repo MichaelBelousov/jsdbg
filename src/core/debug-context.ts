@@ -39,6 +39,8 @@ export class DebugContext {
   constructor(
     engine: Engine,
     public target: child_process.ChildProcess,
+    public entry: string,
+    public args: string[],
   ) {
     this.engine = engine;
   }

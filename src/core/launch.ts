@@ -2,6 +2,7 @@ import which from "which";
 import child_process from "child_process";
 import fs from "fs";
 import path from "path";
+import url from "url";
 import { engineFromExe } from "../engines";
 import { DebugContext } from "./debug-context";
 import assert from "assert";
@@ -65,8 +66,20 @@ export async function launch(cmd: string): Promise<DebugContext> {
 
   await new Promise(resolve => spawned.on("message", (msg: any) => engine.connect(msg.url).then(resolve)));
 
-  return new DebugContext(
+  const debugCtx = new DebugContext(
     engine,
     spawned,
+    scriptArg,
+    otherArgs
   );
+
+  // FIXME: doesn't work yet, script isn't loaded yet
+  debugCtx.engine.setBreakpoint({
+    location: {
+      sourceUrl: url.pathToFileURL(debugCtx.entry).toString(),
+      line: 1,
+    }
+  });
+
+  return debugCtx;
 }
