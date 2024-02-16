@@ -1,9 +1,21 @@
 import which from "which";
 import child_process from "child_process";
 import fs from "fs";
+import path from "path";
 import { engineFromExe } from "../engines";
 import { DebugContext } from "./debug-context";
 import assert from "assert";
+
+async function canonicalPath(p: string) {
+  let result = p;
+  try {
+    result = await fs.promises.readlink(result);
+  } catch (err: any) {
+    if (err.code !== "EINVAL") throw err;
+  }
+
+  return path.normalize(result);
+}
 
 export async function launch(cmd: string): Promise<DebugContext> {
   const [exeRef, scriptArg, ...otherArgs] = cmd.split(/\s+/);
@@ -11,15 +23,13 @@ export async function launch(cmd: string): Promise<DebugContext> {
   const exe = await which(exeRef);
   const engine = await engineFromExe(exe);
 
-  const exeCanonicalPath = await fs.promises.readlink(exe);
-
   // TODO: support others by using require("net").Server instead of built in fork ipc
   assert(
-    process.execPath === exeCanonicalPath,
+    await canonicalPath(process.execPath) === await canonicalPath(exe),
     'Currently only forking is supported, so you must launch the same node exe file, but jsdbg uses node:\n'
     + process.execPath + "\n"
     + 'While you tried to launch:\n'
-    + exeCanonicalPath
+    + exe
   );
 
   // FIXME:
