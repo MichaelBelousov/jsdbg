@@ -7,14 +7,12 @@ import { DebugContext } from "./debug-context";
 import assert from "assert";
 
 async function canonicalPath(p: string) {
-  let result = p;
-  try {
-    result = await fs.promises.readlink(result);
-  } catch (err: any) {
-    if (err.code !== "EINVAL") throw err;
-  }
+  return path.normalize(await fs.promises.realpath(p));
+}
 
-  return path.normalize(result);
+function randomIntInRangeInclusive(low: number, high: number) {
+  const range = high - low + 1;
+  return low + Math.floor(Math.random() * range);
 }
 
 export async function launch(cmd: string): Promise<DebugContext> {
@@ -23,13 +21,21 @@ export async function launch(cmd: string): Promise<DebugContext> {
   const exe = await which(exeRef);
   const engine = await engineFromExe(exe);
 
+  const [canonicalCurrent, canonicalRequested ] = await Promise.all([
+    canonicalPath(process.execPath),
+    canonicalPath(exe),
+  ]);
+
+  const displayCurrent = `${process.execPath}` + (process.execPath === canonicalCurrent ? "" : ` ( => ${canonicalCurrent})`);
+  const displayRequested = `${exe}` + (exe === canonicalRequested ? "" : ` ( => ${canonicalRequested})`);
+
   // TODO: support others by using require("net").Server instead of built in fork ipc
   assert(
-    await canonicalPath(process.execPath) === await canonicalPath(exe),
+    canonicalCurrent === canonicalRequested,
     'Currently only forking is supported, so you must launch the same node exe file, but jsdbg uses node:\n'
-    + process.execPath + "\n"
+    + displayCurrent + "\n"
     + 'While you tried to launch:\n'
-    + exe
+    + displayRequested
   );
 
   // FIXME:
@@ -42,8 +48,8 @@ export async function launch(cmd: string): Promise<DebugContext> {
         ...process.env,
         // FIXME: why not just pass --inspect to node options in env?
         // FIXME: merge with existing node options in env?
-        NODE_OPTIONS: `--require="${engine.bootloaderPath}"`,
-        JSDBG_PORT: `${9229}`, // TODO: randomly generate one
+        NODE_OPTIONS: `--require="${engine.bootloaderPath}" ${process.env.NODE_OPTIONS ?? ""}`,
+        JSDBG_PORT: `${randomIntInRangeInclusive(9000, 10000)}`, // TODO: randomly generate one
       }
     }
   );
