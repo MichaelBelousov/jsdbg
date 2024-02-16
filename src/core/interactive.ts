@@ -24,9 +24,9 @@ export async function main(debugCtx: DebugContext) {
         if (err.type !== "user-quit") {
           runCtx.outputLine(`An error was thrown in jsdb:`);
           console.error(err);
-        } else
+        } else {
           runCtx.close();
-        return;
+        }
       }
     }
   }

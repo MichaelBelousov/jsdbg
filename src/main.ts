@@ -36,7 +36,6 @@ if (module === require.main) {
 
   const launchProgramCli = args._.map(a => `${a}`).join(' ');
 
-  main({ ...args, launchProgramCli });
   main({ ...args, launchProgramCli }).catch((err) => {
     console.error(err);
     console.error(err.message);
