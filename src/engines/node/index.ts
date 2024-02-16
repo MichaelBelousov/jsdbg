@@ -131,6 +131,7 @@ export class nodejs implements Engine {
 
   private _scriptIdToUrl = new Map<string, string>();
   private _scriptUrlToId = new Map<string, string>();
+  private _scriptUrlToSourceMap = new Map<string, string>();
 
   async connect(url: string): Promise<void> {
     debugJsdbg(url);

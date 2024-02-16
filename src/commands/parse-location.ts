@@ -10,18 +10,19 @@ export async function parseLocation(src: string, ctx: DebugContext): Promise<Loc
   const match = /(?<line>\d+)?(:(?<col>\d+))?$/.exec(src);
   assert(match?.groups, "bad location syntax");
 
-  const fileOrRef = src.slice(0, -match[0].length-1)
-  const col = +(match.groups?.col ?? 0);
-  const line = +(match.groups?.line ?? 0);
+  const fileOrRef = src.slice(0, -match[0].length)
+  const line = +(match.groups?.line ?? match.groups?.col ?? 0);
+  const hasCol = match.groups?.line && match.groups?.col;
+  const col = +(hasCol ? match.groups?.col : 0);
 
   debug("jsdbg:parse")({ fileOrRef, col, line });
 
-  const probablyFile = fileOrRef && /[/\\]/.test(fileOrRef);
+  const probablyFile = fileOrRef && /[/\\.]/.test(fileOrRef);
   const probablyRef = fileOrRef && !probablyFile;
 
+  // NOTE: the real behavior should check both refs and paths
   if (probablyRef)
     throw Error("breaking on function-like reference not yet supported");
-
   const urls = probablyFile
     ? await ctx.engine.findLoadedFile(fileOrRef)
     : await ctx.engine.getLocation().then(l => l ? [l.sourceUrl] : []);

@@ -10,3 +10,4 @@ programs from the terminal. Kind of like the `node inspect` utility.
 - reasonably old node.js support
 - source map support
 
+## see if node's `module` module makes it easier to resolve sourcemaps
