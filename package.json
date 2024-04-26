@@ -10,7 +10,7 @@
     "jsdbg": "node lib/main.js",
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [
     "gdb",
@@ -27,6 +27,8 @@
     "@types/source-map-support": "^0.5.6",
     "@types/which": "^2.0.2",
     "@types/yargs": "^17.0.22",
+    "chai": "^5.1.0",
+    "mocha": "^10.4.0",
     "typescript": "^4.9.5"
   },
   "dependencies": {
